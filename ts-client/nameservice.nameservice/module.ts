@@ -9,9 +9,10 @@ import { MissingWalletError } from "../helpers"
 import { Api } from "./rest";
 import { MsgSetName } from "./types/nameservice/nameservice/tx";
 import { MsgBuyName } from "./types/nameservice/nameservice/tx";
+import { MsgDeleteName } from "./types/nameservice/nameservice/tx";
 
 
-export { MsgSetName, MsgBuyName };
+export { MsgSetName, MsgBuyName, MsgDeleteName };
 
 type sendMsgSetNameParams = {
   value: MsgSetName,
@@ -25,6 +26,12 @@ type sendMsgBuyNameParams = {
   memo?: string
 };
 
+type sendMsgDeleteNameParams = {
+  value: MsgDeleteName,
+  fee?: StdFee,
+  memo?: string
+};
+
 
 type msgSetNameParams = {
   value: MsgSetName,
@@ -32,6 +39,10 @@ type msgSetNameParams = {
 
 type msgBuyNameParams = {
   value: MsgBuyName,
+};
+
+type msgDeleteNameParams = {
+  value: MsgDeleteName,
 };
 
 
@@ -80,6 +91,20 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 			}
 		},
 		
+		async sendMsgDeleteName({ value, fee, memo }: sendMsgDeleteNameParams): Promise<DeliverTxResponse> {
+			if (!signer) {
+					throw new Error('TxClient:sendMsgDeleteName: Unable to sign Tx. Signer is not present.')
+			}
+			try {			
+				const { address } = (await signer.getAccounts())[0]; 
+				const signingClient = await SigningStargateClient.connectWithSigner(addr,signer,{registry, prefix});
+				let msg = this.msgDeleteName({ value: MsgDeleteName.fromPartial(value) })
+				return await signingClient.signAndBroadcast(address, [msg], fee ? fee : defaultFee, memo)
+			} catch (e: any) {
+				throw new Error('TxClient:sendMsgDeleteName: Could not broadcast Tx: '+ e.message)
+			}
+		},
+		
 		
 		msgSetName({ value }: msgSetNameParams): EncodeObject {
 			try {
@@ -94,6 +119,14 @@ export const txClient = ({ signer, prefix, addr }: TxClientOptions = { addr: "ht
 				return { typeUrl: "/nameservice.nameservice.MsgBuyName", value: MsgBuyName.fromPartial( value ) }  
 			} catch (e: any) {
 				throw new Error('TxClient:MsgBuyName: Could not create message: ' + e.message)
+			}
+		},
+		
+		msgDeleteName({ value }: msgDeleteNameParams): EncodeObject {
+			try {
+				return { typeUrl: "/nameservice.nameservice.MsgDeleteName", value: MsgDeleteName.fromPartial( value ) }  
+			} catch (e: any) {
+				throw new Error('TxClient:MsgDeleteName: Could not create message: ' + e.message)
 			}
 		},
 		
